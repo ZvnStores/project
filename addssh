@@ -1,0 +1,174 @@
+#!/bin/bash
+ISP=$(cat /etc/xray/isp)
+CITY=$(cat /etc/xray/city)
+domain=$(cat /etc/xray/domain)
+
+ungu="\033[0;35m"
+bc="\033[5;36m"
+y="\033[0;33m"
+NC="\033[0m"
+
+spinner() {
+
+    local pid=$!
+    local delay=0.1
+    local spinstr='|/-\|'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
+function lane() {
+echo -e "${bc} ————————————————————————————————————————${NC}"
+}
+
+function Credit_Sc() {
+sleep 1
+echo -e ""
+lane 
+echo -e "${ungu}      Terimakasih sudah menggunakan-"
+echo -e "         Script Credit by Fvstore"
+lane
+echo -e ""
+exit 0
+}
+
+function LOGO() {
+clear
+echo -e ""
+lane
+echo -e "${ungu}            Fvstore Tunneling            "
+lane
+echo -e ""
+}
+
+clear
+lane
+echo -e "${ungu}           CREATE SSH ACCOUNT            ${NC}"
+lane
+echo -e "${ungu}     Setup Limit IP for Account${NC}"
+echo -e "${ungu}     0 For Unlimited/No Limit${NC}"
+echo -e ""
+echo -e ""
+read -p " Username : " user
+read -p " Password : " Pass
+read -p " Limit IP : " iplimit
+read -p " Expired (Days) : " masaaktif
+
+if [[ $iplimit -gt 0 ]]; then
+mkdir -p /etc/kyt/limit/ssh/ip
+echo -e "$iplimit" > /etc/kyt/limit/ssh/ip/$user
+else
+echo > /dev/null
+fi
+clear
+clear
+tgl=$(date -d "$masaaktif days" +"%d")
+bln=$(date -d "$masaaktif days" +"%b")
+thn=$(date -d "$masaaktif days" +"%Y")
+expe="$tgl $bln, $thn"
+tgl2=$(date +"%d")
+bln2=$(date +"%b")
+thn2=$(date +"%Y")
+tnggl="$tgl2 $bln2, $thn2"
+useradd -e `date -d "$masaaktif days" +"%Y-%m-%d"` -s /bin/false -M $user
+expi="$(chage -l $user | grep "Account expires" | awk -F": " '{print $2}')"
+echo -e "$Pass\n$Pass\n"|passwd $user &> /dev/null
+hariini=`date -d "0 days" +"%Y-%m-%d"`
+expi=`date -d "$masaaktif days" +"%Y-%m-%d"`
+
+DATADB=$(cat /etc/ssh/.ssh.db | grep "^#ssh#" | grep -w "${user}" | awk '{print $2}')
+if [[ "${DATADB}" != '' ]]; then
+  sed -i "/\b${user}\b/d" /etc/ssh/.ssh.db
+fi
+echo "#ssh# ${user} ${Pass} ${iplimit} ${expe}" >>/etc/ssh/.ssh.db
+clear
+
+cat > /var/www/html/ssh-$user.txt <<-END
+───────────────────
+Format SSH OVPN Account
+───────────────────
+Username         : $user
+Password         : $Pass
+Limit IP          : $iplimit
+───────────────────
+IP               : $IP
+Host             : $domain
+Port OpenSSH     : 22
+Port Dropbear    : 143, 109
+Port Dropbear WS : 443, 109
+Port SSH UDP     : 1-65535
+Port SSL/TLS     : 400-900
+Port OVPN WS SSL : 443
+Port OVPN SSL    : 443
+Port OVPN TCP    : 1194
+Port OVPN UDP    : 2200
+BadVPN UDP       : 7100, 7300, 7300
+Port SSH WS      : 80, 8080, 8880, 2052, 2082, 2086
+Port SSH WS SSL  : 443, 8443, 2053, 2083
+───────────────────
+Active During    : $masaaktif Hari
+Created          : $tnggl
+Expired          : $expe
+───────────────────
+Payload Websocket NTLS: 
+GET / HTTP/1.1[crlf]Host: $domain[crlf]Upgrade: websocket[crlf][crlf]
+───────────────────
+Payload Websocket TLS: 
+GET wss://bug.com/ HTTP/1.1[crlf]Host: $domain[crlf]Upgrade: websocket[crlf][crlf]
+───────────────────
+Payload Enhanced:
+PATCH / HTTP/1.1[crlf]Host: [host][crlf]Host: bug.com[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]
+───────────────────
+OVPN Download : https://$domain:81/
+───────────────────
+
+END
+
+clear
+printf "Waiting process... "
+sleep 3.5 & spinner
+
+LOGO
+echo -e "${ungu}           SSH/OVPN ACCOUNT             ${NC}"
+lane
+echo -e "Username         : $user"
+echo -e "Password         : $Pass"
+echo -e "Limit IP         : ${iplimit} Device"
+lane
+echo -e "IP               : $IP"
+echo -e "Host             : $domain"
+echo -e "Port OpenSSH     : 22"
+echo -e "Port SSH UDP     : 1-65535"
+echo -e "Port Dropbear    : 143, 109"
+echo -e "Port SSL/TLS     : 443"
+echo -e "Port OVPN WS SSL : 443"
+echo -e "Port OVPN SSL    : 443"
+echo -e "Port OVPN TCP    : 443, 1194"
+echo -e "Port OVPN UDP    : 2200"
+echo -e "BadVPN           : 7100, 7300, 7300"
+echo -e "Port SSH NTLS    : 80, 8080, 8880, 2052, 2082"
+echo -e "Port SSH TLS     : 443, 8443, 2053"
+lane
+echo -e "OVPN Download    : https://$domain:81/"
+lane
+echo -e "Save Link Account: https://$domain:81/ssh-$user.txt"
+lane
+echo -e "Payload WS NTLS  : $expe"
+echo -e "GET / HTTP/1.1[crlf]host: ${domain}[crlf]Upgrade: Websocket[crlf][crlf]"
+lane
+echo -e "Payload WS TLS   : $expe"
+echo -e "GET http://bug.con/ HTTP/1.1[crlf]host: ${domain}[crlf]Upgrade: Websocket[crlf][crlf]"
+lane
+echo -e "Payload ENHANCED : $expe"
+echo -e "PATCH / HTTP/1.1[crlf]Host: ${domain}[crlf]Host: bug.com[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]" 
+lane
+echo -e "Created On       : $hariini"
+echo -e "Expired On       : $expe"
+lane
+Credit_Sc
