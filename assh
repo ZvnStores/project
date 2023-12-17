@@ -55,9 +55,9 @@ echo -e "${ungu}     Setup Limit IP for Account${NC}"
 echo -e "${ungu}     0 For Unlimited/No Limit${NC}"
 echo -e ""
 echo -e ""
-read -p " Username : " user
-read -p " Password : " Pass
-read -p " Limit IP : " iplimit
+read -p " Username       : " user
+read -p " Password       : " Pass
+read -p " Limit IP       : " iplimit
 read -p " Expired (Days) : " masaaktif
 
 if [[ $iplimit -gt 0 ]]; then
